@@ -1,0 +1,5 @@
+{
+  "auth_token": "relay_secret_token_2024",
+  "bind_address": "0.0.0.0:8080",
+  "log_level": "info"
+}

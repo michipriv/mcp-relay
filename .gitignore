@@ -1,0 +1,22 @@
+# Rust
+target/
+Cargo.lock
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Config (sensitive)
+# config.json bleibt als Template
+
+# EOF
