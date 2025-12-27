@@ -1,0 +1,16 @@
+[Unit]
+Description=MCP Relay Server for Rock Pi E
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/data/relay
+ExecStart=/data/relay/mcp-relay-server
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

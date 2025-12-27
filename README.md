@@ -12,25 +12,25 @@ Ermöglicht KI-gesteuerte Steuerung von Relais über HTTP/SSE.
 ## Projekt-Struktur
 
 ```
-C:\data\relais-board\
-├── docu\
-│   └── relay-shield-rockpi-e.md      # Hardware-Dokumentation
-└── src\
-    └── mcp-relay\
-        ├── Cargo.toml                 # Rust Dependencies
-        ├── config.json                # Server-Konfiguration (Template)
-        ├── README.md                  # Diese Datei
-        ├── src\
-        │   └── lib.rs                 # Relay-Library (GPIO)
-        ├── prg\
-        │   ├── main.rs                # MCP-Server (HTTP/SSE)
-        │   └── handler.rs             # MCP-Tools Handler
-        ├── examples\
-        │   └── test_sequence.rs       # Test-Programm
-        └── target\
-            └── aarch64-unknown-linux-gnu\
-                └── release\
-                    └── mcp-relay-server  # Kompiliertes Binary
+C:\data\mcp-relay\
+├── .gitignore
+├── Cargo.toml                          # Rust Dependencies
+├── README.md                           # Diese Datei
+├── config\
+│   ├── README.md                       # Config Dokumentation
+│   ├── config.json                     # Server-Konfiguration (Template)
+│   └── mcp-relay.service               # Systemd Service
+├── src\
+│   └── lib.rs                          # Relay-Library (GPIO)
+├── prg\
+│   ├── main.rs                         # MCP-Server (HTTP/SSE)
+│   └── handler.rs                      # MCP-Tools Handler
+├── examples\
+│   └── test_sequence.rs                # Test-Programm
+└── target\
+    └── aarch64-unknown-linux-gnu\
+        └── release\
+            └── mcp-relay-server        # Kompiliertes Binary (nicht in Git)
 ```
 
 ## Entwicklung
@@ -57,13 +57,13 @@ cargo install cargo-zigbuild
 ### Kompilieren
 
 ```powershell
-cd C:\data\relais-board\src\mcp-relay
+cd C:\data\mcp-relay
 
 # Library + Binary kompilieren
 cargo zigbuild --target aarch64-unknown-linux-gnu --release --bin mcp-relay-server
 
 # Binary-Pfad
-# C:\data\relais-board\src\mcp-relay\target\aarch64-unknown-linux-gnu\release\mcp-relay-server
+# C:\data\mcp-relay\target\aarch64-unknown-linux-gnu\release\mcp-relay-server
 ```
 
 ### Testen (Lokal)
@@ -83,7 +83,7 @@ cargo zigbuild --target aarch64-unknown-linux-gnu --release --example test_seque
 **Via SSH/SCP:**
 ```powershell
 scp -i C:\Users\mmade\.ssh\mcp_key `
-  C:\data\relais-board\src\mcp-relay\target\aarch64-unknown-linux-gnu\release\mcp-relay-server `
+  C:\data\mcp-relay\target\aarch64-unknown-linux-gnu\release\mcp-relay-server `
   mcpbot@192.168.9.50:/data/relay/
 ```
 
@@ -108,6 +108,11 @@ sudo systemctl status mcp-relay
 ```
 
 ## Konfiguration
+
+Siehe `config/README.md` für Details zu:
+- Server-Konfiguration (`config.json`)
+- Systemd Service (`mcp-relay.service`)
+- Token-Verwaltung
 
 ### Server-Konfiguration
 
@@ -222,6 +227,11 @@ notepad C:\Users\mmade\AppData\Roaming\Claude\claude_desktop_config.json
 [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes([System.Guid]::NewGuid().ToString()))
 ```
 
+```bash
+# Linux
+openssl rand -base64 32
+```
+
 ## Troubleshooting
 
 ### Kompilier-Fehler
@@ -320,18 +330,15 @@ schemars = "0.8"
 - **Memory-Usage:** ~1 MB
 - **Compiler:** cargo-zigbuild (Cross-Compile Windows→ARM64)
 
-## Dokumentation
+## GitHub Repository
 
-- **Hardware:** `C:\data\relais-board\docu\relay-shield-rockpi-e.md`
-- **MCP SDK:** `C:\data\mcp-rmcp\README.md`
-- **Rust Prompts:** `C:\data\compiler.md`
+**URL:** https://github.com/michipriv/mcp-relay
 
-## Repository
-
-**Lokal:**
-- Projekt: `C:\data\relais-board\src\mcp-relay`
-- MCP SDK: `C:\data\mcp-rmcp` (Fork von modelcontextprotocol/rust-sdk)
-- SSH Server: `C:\data\ssh-mcp-server` (Fork von uarlouski)
+**Clone:**
+```bash
+git clone https://github.com/michipriv/mcp-relay.git
+cd mcp-relay
+```
 
 ## Versionshistorie
 
