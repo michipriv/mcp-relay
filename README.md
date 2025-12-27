@@ -82,13 +82,11 @@ cargo zigbuild --target aarch64-unknown-linux-gnu --release --example test_seque
 
 **Via SSH/SCP:**
 ```powershell
-scp -i C:\Users\mmade\.ssh\mcp_key `
-  C:\data\mcp-relay\target\aarch64-unknown-linux-gnu\release\mcp-relay-server `
-  mcpbot@192.168.9.50:/data/relay/
+scp -i C:\Users\mmade\.ssh\mcp_key C:\data\mcp-relay\target\aarch64-unknown-linux-gnu\release\mcp-relay-server mcpbot@192.168.9.50:/data/relay/
 ```
 
 **Via Claude MCP SSH:**
-- Nutze `ssh-armbian:ssh_upload_file` Tool
+- Nutze ssh-armbian:ssh_upload_file Tool
 - Automatisches Deployment
 
 ### Installation auf Rock Pi E
@@ -109,14 +107,14 @@ sudo systemctl status mcp-relay
 
 ## Konfiguration
 
-Siehe `config/README.md` für Details zu:
-- Server-Konfiguration (`config.json`)
-- Systemd Service (`mcp-relay.service`)
+Siehe config/README.md für Details zu:
+- Server-Konfiguration (config.json)
+- Systemd Service (mcp-relay.service)
 - Token-Verwaltung
 
 ### Server-Konfiguration
 
-**Datei:** `/data/relay/config.json` (Rock Pi E)
+**Datei:** /data/relay/config.json (Rock Pi E)
 
 ```json
 {
@@ -133,7 +131,7 @@ sudo systemctl restart mcp-relay
 
 ### Claude Desktop Konfiguration
 
-**Datei:** `C:\Users\mmade\AppData\Roaming\Claude\claude_desktop_config.json`
+**Datei:** C:\Users\mmade\AppData\Roaming\Claude\claude_desktop_config.json
 
 ```json
 {
@@ -156,7 +154,7 @@ sudo systemctl restart mcp-relay
 Schaltet ein Relay EIN.
 
 **Parameter:**
-- `relay` (number) - Relay-Nummer: 2, 3, 4, oder 5
+- relay (number) - Relay-Nummer: 2, 3, 4, oder 5
 
 **Verwendung in Claude:**
 ```
@@ -168,7 +166,7 @@ Schaltet ein Relay EIN.
 Schaltet ein Relay AUS.
 
 **Parameter:**
-- `relay` (number) - Relay-Nummer: 2, 3, 4, oder 5
+- relay (number) - Relay-Nummer: 2, 3, 4, oder 5
 
 **Verwendung in Claude:**
 ```
@@ -236,9 +234,9 @@ openssl rand -base64 32
 
 ### Kompilier-Fehler
 
-**Problem:** `sysfs_gpio` kompiliert nicht auf Windows
+**Problem:** sysfs_gpio kompiliert nicht auf Windows
 ```
-error: could not find `unix` in `os`
+error: could not find unix in os
 ```
 
 **Lösung:** Cross-Compile verwenden (zigbuild)
@@ -274,7 +272,7 @@ echo 60 > /sys/class/gpio/unexport
 ### Claude verbindet nicht
 
 **Prüfen:**
-1. Service läuft? `sudo systemctl status mcp-relay`
+1. Service läuft? sudo systemctl status mcp-relay
 2. Server erreichbar?
 ```bash
 curl -X POST http://192.168.9.50:8080/mcp \
@@ -287,7 +285,7 @@ curl -X POST http://192.168.9.50:8080/mcp \
 # data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05",...}}
 ```
 3. Token korrekt? Vergleiche Config vs. Claude Desktop
-4. Firewall? `sudo ufw status`
+4. Firewall? sudo ufw status
 
 ## Dependencies
 
@@ -345,7 +343,7 @@ cd mcp-relay
 ### v1.0 - 2024-12-27
 - Initial Release
 - HTTP/SSE Transport mit Auth-Token
-- Config-File Support (`config.json`)
+- Config-File Support (config.json)
 - Systemd Service Integration
 - 3 MCP-Tools: relay_on, relay_off, relay_all_off
 - Vollständige Dokumentation
