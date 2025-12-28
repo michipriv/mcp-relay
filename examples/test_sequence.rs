@@ -1,4 +1,4 @@
-use relay_controller::{RelayBoard, RelayError};
+use relay::{RelayBoard, RelayError};  
 
 fn main() -> Result<(), RelayError> {
     println!("Rock Pi E - Relay Board Controller");

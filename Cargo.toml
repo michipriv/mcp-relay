@@ -1,9 +1,9 @@
 # Filename: Cargo.toml
-# V 1.9 2024-12-27 Axum und tokio-util hinzugefügt
+# V 2.0 2024-12-28 REST API, removed MCP dependencies
 
 [package]
 name = "mcp-relay"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [lib]
@@ -11,39 +11,15 @@ name = "relay"
 path = "src/lib.rs"
 
 [[bin]]
-name = "mcp-relay-server"
+name = "relay-rest-server"
 path = "prg/main.rs"
 
 [dependencies]
-# GPIO Control
 sysfs_gpio = "0.6"
-
-# MCP SDK (lokal)
-rmcp = { path = "C:/data/mcp-rmcp/crates/rmcp", features = ["server", "transport-streamable-http-server"] }
-rmcp-macros = { path = "C:/data/mcp-rmcp/crates/rmcp-macros" }
-
-# HTTP Server
 axum = "0.8"
-tokio-util = "0.7"
-
-# Async Runtime
 tokio = { version = "1.0", features = ["full"] }
-
-# Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-
-# Traits
-async-trait = "0.1"
-
-# Error Handling
 anyhow = "1.0"
-
-# Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-# Schema
-schemars = "0.8"
-
-# EOF

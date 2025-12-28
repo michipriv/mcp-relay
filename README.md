@@ -1,13 +1,13 @@
-# MCP Relay Server - Rock Pi E
+# Relay REST API Server - Rock Pi E
 
-MCP (Model Context Protocol) Server für 4-Kanal Relay-Shield auf Rock Pi E.
-Ermöglicht KI-gesteuerte Steuerung von Relais über HTTP/SSE.
+REST API Server für 4-Kanal Relay-Shield auf Rock Pi E.
+Ermöglicht Steuerung von Relais über HTTP REST-Endpunkte.
 
 ## Hardware
 
 - **Board:** Rock Pi E (RK3328, ARM64)
 - **Shield:** Keyestudio KS0212 4-Channel Relay Shield
-- **Relays:** J2, J3, J4, J5 (GPIO 60, 27, 85, 86)
+- **Relays:** 1, 2, 3, 4 (GPIO 60, 27, 85, 86)
 
 ## Projekt-Struktur
 
@@ -18,19 +18,15 @@ C:\data\mcp-relay\
 ├── README.md                           # Diese Datei
 ├── config\
 │   ├── README.md                       # Config Dokumentation
-│   ├── config.json                     # Server-Konfiguration (Template)
-│   └── mcp-relay.service               # Systemd Service
+│   └── config.json                     # Server-Konfiguration
 ├── src\
 │   └── lib.rs                          # Relay-Library (GPIO)
 ├── prg\
-│   ├── main.rs                         # MCP-Server (HTTP/SSE)
-│   └── handler.rs                      # MCP-Tools Handler
-├── examples\
-│   └── test_sequence.rs                # Test-Programm
+│   └── main.rs                         # REST API Server
 └── target\
     └── aarch64-unknown-linux-gnu\
         └── release\
-            └── mcp-relay-server        # Kompiliertes Binary (nicht in Git)
+            └── relay-rest-server       # Kompiliertes Binary (nicht in Git)
 ```
 
 ## Entwicklung
@@ -38,7 +34,7 @@ C:\data\mcp-relay\
 ### Voraussetzungen
 
 **Windows PC:**
-- Rust 1.85+
+- Rust 1.92+
 - cargo-zigbuild (Cross-Compiler)
 - SSH-Zugriff zu Rock Pi E
 
@@ -49,9 +45,6 @@ rustup target add aarch64-unknown-linux-gnu
 
 # Cross-Compiler
 cargo install cargo-zigbuild
-
-# Zig (Linker)
-# Download: https://ziglang.org/download/
 ```
 
 ### Kompilieren
@@ -59,37 +52,14 @@ cargo install cargo-zigbuild
 ```powershell
 cd C:\data\mcp-relay
 
-# Library + Binary kompilieren
-cargo zigbuild --target aarch64-unknown-linux-gnu --release --bin mcp-relay-server
+# Binary kompilieren
+cargo zigbuild --target aarch64-unknown-linux-gnu --release
 
 # Binary-Pfad
-# C:\data\mcp-relay\target\aarch64-unknown-linux-gnu\release\mcp-relay-server
-```
-
-### Testen (Lokal)
-
-```powershell
-# Nur auf Linux/ARM64 testbar!
-# Windows kann GPIO-Library nicht kompilieren
-
-# Test via Examples:
-cargo zigbuild --target aarch64-unknown-linux-gnu --release --example test_sequence
+# C:\data\mcp-relay\target\aarch64-unknown-linux-gnu\release\relay-rest-server
 ```
 
 ## Deployment
-
-### Upload zu Rock Pi E
-
-**Via SSH/SCP:**
-```powershell
-scp -i C:\Users\mmade\.ssh\mcp_key `
-  C:\data\mcp-relay\target\aarch64-unknown-linux-gnu\release\mcp-relay-server `
-  mcpbot@192.168.9.50:/data/relay/
-```
-
-**Via Claude MCP SSH:**
-- Nutze `ssh-armbian:ssh_upload_file` Tool
-- Automatisches Deployment
 
 ### Installation auf Rock Pi E
 
@@ -98,7 +68,8 @@ scp -i C:\Users\mmade\.ssh\mcp_key `
 sudo systemctl stop mcp-relay
 
 # Binary ersetzen
-# (via Upload)
+sudo cp /tmp/relay-rest-server /data/relay/mcp-relay-server
+sudo chmod +x /data/relay/mcp-relay-server
 
 # Service starten
 sudo systemctl start mcp-relay
@@ -108,11 +79,6 @@ sudo systemctl status mcp-relay
 ```
 
 ## Konfiguration
-
-Siehe `config/README.md` für Details zu:
-- Server-Konfiguration (`config.json`)
-- Systemd Service (`mcp-relay.service`)
-- Token-Verwaltung
 
 ### Server-Konfiguration
 
@@ -131,70 +97,124 @@ Siehe `config/README.md` für Details zu:
 sudo systemctl restart mcp-relay
 ```
 
-### Claude Desktop Konfiguration
+### Systemd Service
 
-**Datei:** `C:\Users\mmade\AppData\Roaming\Claude\claude_desktop_config.json`
+**Datei:** `/etc/systemd/system/mcp-relay.service`
 
+```ini
+[Unit]
+Description=Relay REST API Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/data/relay
+ExecStart=/data/relay/mcp-relay-server
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment="CONFIG_PATH=/data/relay/config.json"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## REST API
+
+### Endpunkte
+
+**Alle Requests benötigen Authorization Header:**
+```
+Authorization: Bearer relay_secret_token_2024
+```
+
+#### POST /relay/{id}/on
+Schaltet Relay EIN (id: 1-4)
+
+**Beispiel:**
+```bash
+curl -X POST http://192.168.9.50:8080/relay/1/on \
+  -H "Authorization: Bearer relay_secret_token_2024"
+```
+
+**Response:**
+```json
+{"relay":1,"state":"on"}
+```
+
+#### POST /relay/{id}/off
+Schaltet Relay AUS (id: 1-4)
+
+**Beispiel:**
+```bash
+curl -X POST http://192.168.9.50:8080/relay/2/off \
+  -H "Authorization: Bearer relay_secret_token_2024"
+```
+
+**Response:**
+```json
+{"relay":2,"state":"off"}
+```
+
+#### POST /relay/all/off
+Schaltet ALLE Relays AUS
+
+**Beispiel:**
+```bash
+curl -X POST http://192.168.9.50:8080/relay/all/off \
+  -H "Authorization: Bearer relay_secret_token_2024"
+```
+
+**Response:**
+```json
+{"message":"all relays off"}
+```
+
+#### GET /relay/status
+Gibt Status aller Relays zurück
+
+**Beispiel:**
+```bash
+curl http://192.168.9.50:8080/relay/status \
+  -H "Authorization: Bearer relay_secret_token_2024"
+```
+
+**Response:**
 ```json
 {
-  "mcpServers": {
-    "relay-rockpi": {
-      "url": "http://192.168.9.50:8080/mcp",
-      "headers": {
-        "Authorization": "Bearer relay_secret_token_2024"
-      }
-    }
-  }
+  "relays": [
+    {"id":1,"state":"on"},
+    {"id":2,"state":"off"},
+    {"id":3,"state":"on"},
+    {"id":4,"state":"off"}
+  ]
 }
 ```
 
-**Nach Änderung:** Claude Desktop neu starten
+#### GET /health
+Health-Check Endpunkt
 
-## MCP Tools
-
-### relay_on
-Schaltet ein Relay EIN.
-
-**Parameter:**
-- `relay` (number) - Relay-Nummer: 2, 3, 4, oder 5
-
-**Verwendung in Claude:**
-```
-"Schalte Relay 2 ein"
-"Turn on relay J3"
+**Beispiel:**
+```bash
+curl http://192.168.9.50:8080/health \
+  -H "Authorization: Bearer relay_secret_token_2024"
 ```
 
-### relay_off
-Schaltet ein Relay AUS.
-
-**Parameter:**
-- `relay` (number) - Relay-Nummer: 2, 3, 4, oder 5
-
-**Verwendung in Claude:**
-```
-"Schalte Relay 4 aus"
-"Turn off relay J5"
-```
-
-### relay_all_off
-Schaltet ALLE Relays AUS (Notaus).
-
-**Parameter:** Keine
-
-**Verwendung in Claude:**
-```
-"Schalte alle Relays aus"
-"Emergency stop - all relays off"
+**Response:**
+```json
+{"status":"ok"}
 ```
 
 ## GPIO-Mapping
 
-| Relay | Pin | GPIO | Chip     | Funktion        |
-|-------|-----|------|----------|-----------------|
-| J2    | 7   | 60   | GPIO1_D4 | Relay 1         |
-| J3    | 15  | 27   | GPIO0_D3 | Relay 2         |
-| J4    | 31  | 85   | GPIO2_C5 | Relay 3         |
-| J5    | 37  | 86   | GPIO2_C6 | Relay 4         |
+| Relay | Pin | GPIO | Chip     | Funktion |
+|-------|-----|------|----------|----------|
+| 1     | 7   | 60   | GPIO1_D4 | Relay 1  |
+| 2     | 15  | 27   | GPIO0_D3 | Relay 2  |
+| 3     | 31  | 85   | GPIO2_C5 | Relay 3  |
+| 4     | 37  | 86   | GPIO2_C6 | Relay 4  |
 
 **GPIO-Berechnung RK3328:**
 ```
@@ -213,13 +233,6 @@ sudo nano /data/relay/config.json
 sudo systemctl restart mcp-relay
 ```
 
-**2. Claude Desktop Config:**
-```powershell
-notepad C:\Users\mmade\AppData\Roaming\Claude\claude_desktop_config.json
-# Authorization Header anpassen
-# Claude Desktop neu starten
-```
-
 ### Empfohlene Token-Generierung
 
 ```powershell
@@ -233,18 +246,6 @@ openssl rand -base64 32
 ```
 
 ## Troubleshooting
-
-### Kompilier-Fehler
-
-**Problem:** `sysfs_gpio` kompiliert nicht auf Windows
-```
-error: could not find `unix` in `os`
-```
-
-**Lösung:** Cross-Compile verwenden (zigbuild)
-```powershell
-cargo zigbuild --target aarch64-unknown-linux-gnu --release
-```
 
 ### Service startet nicht
 
@@ -271,84 +272,52 @@ echo 0 > /sys/class/gpio/gpio60/value  # AUS
 echo 60 > /sys/class/gpio/unexport
 ```
 
-### Claude verbindet nicht
+### API-Test
 
-**Prüfen:**
-1. Service läuft? `sudo systemctl status mcp-relay`
-2. Server erreichbar?
 ```bash
-curl -X POST http://192.168.9.50:8080/mcp \
-  -H "Authorization: Bearer relay_secret_token_2024" \
-  -H "Accept: application/json, text/event-stream" \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+# Health-Check
+curl -v http://192.168.9.50:8080/health \
+  -H "Authorization: Bearer relay_secret_token_2024"
 
-# Erwartete Antwort:
-# data: {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05",...}}
+# Status abfragen
+curl -v http://192.168.9.50:8080/relay/status \
+  -H "Authorization: Bearer relay_secret_token_2024"
 ```
-3. Token korrekt? Vergleiche Config vs. Claude Desktop
-4. Firewall? `sudo ufw status`
 
 ## Dependencies
 
 **Cargo.toml:**
 ```toml
 [dependencies]
-# GPIO
 sysfs_gpio = "0.6"
-
-# MCP SDK (lokal)
-rmcp = { path = "C:/data/mcp-rmcp/crates/rmcp", features = ["server", "transport-streamable-http-server"] }
-rmcp-macros = { path = "C:/data/mcp-rmcp/crates/rmcp-macros" }
-
-# HTTP Server
 axum = "0.8"
-tokio-util = "0.7"
-
-# Runtime
 tokio = { version = "1.0", features = ["full"] }
-
-# Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-
-# Logging
+anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-# Schema
-schemars = "0.8"
 ```
 
 ## Technische Details
 
 - **Sprache:** Rust 2021 Edition
-- **MCP-SDK:** rmcp v0.8.5 (offizielles Anthropic SDK)
-- **Transport:** HTTP/SSE (Streamable HTTP Server)
+- **Framework:** Axum 0.8
 - **GPIO-Library:** sysfs_gpio 0.6
-- **Binary-Größe:** ~4 MB (ARM64)
-- **Memory-Usage:** ~1 MB
+- **Binary-Größe:** ~2.2 MB (ARM64)
+- **Memory-Usage:** <1 MB
 - **Compiler:** cargo-zigbuild (Cross-Compile Windows→ARM64)
-
-## GitHub Repository
-
-**URL:** https://github.com/michipriv/mcp-relay
-
-**Clone:**
-```bash
-git clone https://github.com/michipriv/mcp-relay.git
-cd mcp-relay
-```
 
 ## Versionshistorie
 
-### v1.0 - 2024-12-27
-- Initial Release
-- HTTP/SSE Transport mit Auth-Token
-- Config-File Support (`config.json`)
-- Systemd Service Integration
-- 3 MCP-Tools: relay_on, relay_off, relay_all_off
-- Vollständige Dokumentation
+### v0.2.0 - 2024-12-28
+- Umstellung auf REST API
+- Entfernung MCP Dependencies
+- Endpoints: /relay/{id}/on, /relay/{id}/off, /relay/all/off, /relay/status, /health
+- Relay-Nummerierung 1-4 (vorher 2-5)
+
+### v0.1.0 - 2024-12-27
+- Initial Release (MCP Server)
 
 ## Lizenz
 
@@ -356,4 +325,4 @@ MIT
 
 ## Autor
 
-Entwickelt für Rock Pi E Relay-Steuerung via Claude AI
+Entwickelt für Rock Pi E Relay-Steuerung
